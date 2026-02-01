@@ -9,3 +9,6 @@ $$;
 GRANT CONNECT ON DATABASE reportes_db TO reportes_user;
 GRANT USAGE ON SCHEMA public TO reportes_user;
 
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO reportes_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO reportes_user;
+

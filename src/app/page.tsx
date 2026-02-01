@@ -1,198 +1,204 @@
 import Link from 'next/link';
+import { pool } from '@/lib/db';
 
-const Icons = {
-  Chart: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
-  ),
-  Crown: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 18 14-4.4a2 2 0 0 0 1.2-2.5 2 2 0 0 0-.1-.6l-2.4-9a2 2 0 0 0-3.3-1.1L10 6l-2.5-4a2 2 0 0 0-3.8.7L2 14.3a2 2 0 0 0 1.6 2.6l1.4.2Z" /><path d="M5 18h14v3H5z" /></svg>
-  ),
-  Package: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22v-9" /></svg>
-  ),
-  Activity: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-  ),
-  Users: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-  ),
-  ArrowRight: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
-  )
-};
+export const dynamic = 'force-dynamic';
 
-export default function Home() {
+const BarChartIcon = () => (
+  <svg viewBox="0 0 100 60" className="w-full h-16 opacity-80" preserveAspectRatio="none">
+    <rect x="10" y="20" width="15" height="40" fill="#10b981" rx="2" />
+    <rect x="35" y="35" width="15" height="25" fill="#34d399" rx="2" />
+    <rect x="60" y="10" width="15" height="50" fill="#6ee7b7" rx="2" />
+    <line x1="0" y1="60" x2="100" y2="60" stroke="#525252" strokeWidth="2" />
+  </svg>
+);
+
+const PieChartIcon = () => (
+  <svg viewBox="0 0 60 60" className="w-16 h-16 mx-auto opacity-80">
+    <circle cx="30" cy="30" r="25" fill="none" stroke="#ef4444" strokeWidth="8" strokeDasharray="100 100" strokeDashoffset="40" transform="rotate(-90 30 30)" />
+    <circle cx="30" cy="30" r="25" fill="none" stroke="#b91c1c" strokeWidth="8" strokeDasharray="40 100" strokeDashoffset="0" transform="rotate(-90 30 30)" />
+  </svg>
+);
+
+const LineChartIcon = () => (
+  <svg viewBox="0 0 100 50" className="w-full h-16 opacity-80" preserveAspectRatio="none">
+    <polyline points="0,50 20,40 40,45 60,25 80,30 100,10" fill="none" stroke="#f59e0b" strokeWidth="3" />
+    <circle cx="20" cy="40" r="2" fill="#f59e0b" />
+    <circle cx="60" cy="25" r="2" fill="#f59e0b" />
+    <circle cx="100" cy="10" r="2" fill="#f59e0b" />
+    <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.2" />
+      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+    </linearGradient>
+    <polygon points="0,50 20,40 40,45 60,25 80,30 100,10 100,50 0,50" fill="url(#grad)" />
+  </svg>
+);
+
+const AreaChartIcon = () => (
+  <svg viewBox="0 0 100 60" className="w-full h-16 opacity-80" preserveAspectRatio="none">
+    <path d="M0,60 L0,40 Q25,20 50,40 T100,30 L100,60 Z" fill="#a855f7" fillOpacity="0.4" />
+    <path d="M0,40 Q25,20 50,40 T100,30" fill="none" stroke="#a855f7" strokeWidth="2" />
+  </svg>
+);
+
+export default async function Home() {
+  const client = await pool.connect();
+
+  const resOrders = await client.query(`
+    SELECT COALESCE(SUM(Ingresos_totales), 0) as total 
+    FROM v_resumen_ordenes_por_estado 
+    WHERE Estado_orden = 'completed'
+  `);
+  const totalProcessed = parseFloat(resOrders.rows[0]?.total || '0');
+
+  const resTopBuyer = await client.query(`
+    SELECT nombre_usuario, total_gastado 
+    FROM v_ranking_usuarios_por_gasto 
+    ORDER BY total_gastado DESC 
+    LIMIT 1
+  `);
+  const topBuyer = resTopBuyer.rows[0] || { nombre_usuario: 'N/A', total_gastado: 0 };
+
+  const resActiveUsers = await client.query(`SELECT COUNT(*) as count FROM users`);
+  const activeUsers = resActiveUsers.rows[0]?.count || 0;
+
+  client.release();
+
   return (
-    <main className="min-h-screen bg-gray-50/50 p-6 md:p-10 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
-
-        { }
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 border-gray-200">
+    <main className="min-h-screen bg-black text-gray-300 p-8 font-sans selection:bg-gray-800">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12 border-b border-neutral-800 pb-6 flex flex-col md:flex-row justify-between items-end">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Financiero</h1>
-            <p className="text-gray-500 mt-1">Vista general de rendimiento, clientes e inventario.</p>
+            <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Dashboard Financiero</h1>
+            <p className="text-gray-500">Monitor de ventas, inventario y clientes VIP.</p>
           </div>
-          <div className="mt-4 md:mt-0 flex gap-3">
-            <div className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 shadow-sm">
-              Última act: {new Date().toLocaleString()}
-            </div>
+          <div className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-gray-500 shadow-sm mt-4 md:mt-0">
+            Última act: {new Date().toLocaleString()}
           </div>
-        </div>
+        </header>
 
-        { }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-          { }
-          <Link href="/reports/4" className="col-span-1 md:col-span-2 lg:col-span-1 block group">
-            <div className="h-full bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 hover:border-blue-200 transition-all hover:shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Icons.Activity />
-              </div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                  <Icons.Activity />
+          <Link href="/reports/2" className="group block">
+            <div className="h-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 hover:border-emerald-600 transition-colors duration-300 flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-medium text-white group-hover:text-emerald-500 transition-colors">
+                    Ventas por Categoría
+                  </h2>
+                  <span className="text-[10px] font-mono text-gray-600 border border-neutral-700 px-2 py-1 rounded bg-black">SUM, GROUP BY</span>
                 </div>
-                <h3 className="font-semibold text-gray-800">Resumen de Órdenes</h3>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-sm text-gray-500">Ingresos Totales (Completed)</p>
-                    <p className="text-2xl font-bold text-gray-900">$45,231.00</p>
-                  </div>
-                  <span className="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">SUM(amount)</span>
+                <div className="mb-6 mt-4">
+                  <BarChartIcon />
                 </div>
-                { }
-                <div className="flex gap-2 mt-2">
-                  <div className="h-2 w-3/4 bg-blue-500 rounded-full"></div>
-                  <div className="h-2 w-1/4 bg-gray-200 rounded-full"></div>
-                </div>  
-                <p className="text-xs text-gray-400 mt-1">75% Completadas vs Pendientes</p>
               </div>
-            </div>
-          </Link>
-
-          { }
-          <Link href="/reports/1" className="col-span-1 md:col-span-1 lg:col-span-1 block group">
-            <div className="h-full bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(147,51,234,0.1)] border border-gray-100 hover:border-purple-200 transition-all hover:shadow-lg">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                    <Icons.Crown />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">Clientes VIP</h3>
-                </div>
-                <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">High Value</span>
-              </div>
-
-              <p className="text-sm text-gray-500 mb-4">
-                Usuarios con compras totales &gt;
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Resumen de ingresos totales agrupados por familia de productos.
               </p>
-
-              <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
-                <div className="text-xs font-mono text-gray-400">HAVING SUM &gt; 1000</div>
-                <div className="text-purple-600 group-hover:translate-x-1 transition-transform">
-                  <Icons.ArrowRight />
-                </div>
-              </div>
             </div>
           </Link>
 
-          { }
-          <Link href="/reports/2" className="col-span-1 md:col-span-1 lg:col-span-1 block group">
-            <div className="h-full bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] border border-gray-100 hover:border-emerald-200 transition-all hover:shadow-lg">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                  <Icons.Chart />
+          <Link href="/reports/1" className="group block">
+            <div className="h-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 hover:border-purple-600 transition-colors duration-300 flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-medium text-white group-hover:text-purple-500 transition-colors">
+                    Clientes VIP
+                  </h2>
+                  <span className="text-[10px] font-mono text-gray-600 border border-neutral-700 px-2 py-1 rounded bg-black">HAVING, CASE</span>
                 </div>
-                <h3 className="font-semibold text-gray-800">Ventas x Categoría</h3>
-              </div>
-
-              { }
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-16 text-gray-500">Electrónica</span>
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 w-[80%]"></div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-16 text-gray-500">Hogar</span>
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-400 w-[50%]"></div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-16 text-gray-500">Ropa</span>
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-300 w-[30%]"></div>
-                  </div>
+                <div className="mb-6 mt-4 flex justify-center">
+                  <AreaChartIcon />
                 </div>
               </div>
-
-              <div className="mt-4 text-right">
-                <span className="text-xs font-mono text-gray-400">JOIN + GROUP BY</span>
-              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Identificación de mejores clientes basado en volumen de compra.
+              </p>
             </div>
           </Link>
 
-          { }
-          <Link href="/reports/5" className="col-span-1 md:col-span-2 block group">
-            <div className="h-full bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-32 bg-white opacity-5 rounded-full blur-3xl -mr-10 -mt-10"></div>
-
-              <div className="flex justify-between items-start relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                    <Icons.Users />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Top Usuarios</h3>
-                    <p className="text-gray-400 text-sm">Ranking global de usuarios por gasto total</p>
-                  </div>
+          <Link href="/reports/3" className="group block">
+            <div className="h-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 hover:border-amber-600 transition-colors duration-300 flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-medium text-white group-hover:text-amber-500 transition-colors">
+                    Top Productos
+                  </h2>
+                  <span className="text-[10px] font-mono text-gray-600 border border-neutral-700 px-2 py-1 rounded bg-black">ORDER BY</span>
                 </div>
-                <div className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                  TOP 10
+                <div className="mb-6 mt-4">
+                  <LineChartIcon />
                 </div>
               </div>
-
-              <div className="mt-6 grid grid-cols-3 gap-4 relative z-10">
-                <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">#1 Top Buyer</div>
-                  <div className="font-medium">Juan Pérez</div>
-                  <div className="text-emerald-400 text-sm font-bold">$3,420</div>
-                </div>
-                <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">#2 Contender</div>
-                  <div className="font-medium">Maria G.</div>
-                  <div className="text-emerald-400 text-sm font-bold">$2,850</div>
-                </div>
-                <div className="bg-white/5 p-3 rounded-lg border border-white/10 flex items-center justify-center text-gray-400 text-sm hover:bg-white/10 transition">
-                  Ver Tabla Completa →
-                </div>
-              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Análisis de stock vs ventas potenciales.
+              </p>
             </div>
           </Link>
 
-          { }
-          <Link href="/reports/3" className="col-span-1 block group">
-            <div className="h-full bg-white p-6 rounded-2xl shadow-[0_2px_10px_-3px_rgba(245,158,11,0.1)] border border-gray-100 hover:border-amber-200 transition-all hover:shadow-lg">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                  <Icons.Package />
+          <Link href="/reports/4" className="group block md:col-span-2 lg:col-span-1">
+            <div className="h-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 hover:border-blue-600 transition-colors duration-300 flex flex-col justify-between shadow-lg">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-medium text-white group-hover:text-blue-500 transition-colors">
+                    Resumen de Órdenes
+                  </h2>
+                  <span className="text-[10px] font-mono text-gray-600 border border-neutral-700 px-2 py-1 rounded bg-black">COUNT</span>
                 </div>
-                <h3 className="font-semibold text-gray-800">Top Productos</h3>
+                <div className="space-y-4 mb-6 mt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div>
+                    <div className="h-1.5 bg-neutral-800 flex-1 rounded overflow-hidden">
+                      <div className="h-full bg-blue-600 w-3/4 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-800"></div>
+                    <div className="h-1.5 bg-neutral-800 flex-1 rounded overflow-hidden">
+                      <div className="h-full bg-blue-900 w-1/2 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-white mt-2">
+                      ${totalProcessed.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-gray-600">Total Processed</p>
+                  </div>
+                </div>
               </div>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Ranking de transacciones recientes por usuario.
+              </p>
+            </div>
+          </Link>
 
-              <div className="flex justify-between items-end mb-2">
-                <p className="text-4xl font-bold text-gray-900">842</p>
-                <span className="text-xs text-green-600 font-medium mb-2">▲ 12% vs mes anterior</span>
+          <Link href="/reports/5" className="group block md:col-span-2">
+            <div className="h-full bg-neutral-900 border border-neutral-800 rounded-2xl p-6 hover:border-red-600 transition-colors duration-300 flex flex-row items-center gap-8 shadow-lg">
+              <div className="flex-1">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-medium text-white group-hover:text-red-500 transition-colors">
+                    Top Usuarios (Market Share)
+                  </h2>
+                  <span className="text-[10px] font-mono text-gray-600 border border-neutral-700 px-2 py-1 rounded bg-black">LIMIT / OFFSET</span>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                  Participación de mercado global por categoría y usuarios destacados.
+                </p>
+                <div className="flex gap-4 mt-4">
+                  <div className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-800">
+                    <div className="text-xs text-gray-500">Top Buyer</div>
+                    <div className="text-emerald-400 font-bold">
+                      ${Number(topBuyer.total_gastado).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{topBuyer.nombre_usuario}</div>
+                  </div>
+                  <div className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-800">
+                    <div className="text-xs text-gray-500">Active Users</div>
+                    <div className="text-white font-bold">{activeUsers}</div>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-gray-500">Unidades vendidas del producto estrella.</p>
-
-              <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between">
-                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">ORDER BY DESC</span>
+              <div className="shrink-0 hidden sm:block">
+                <PieChartIcon />
               </div>
             </div>
           </Link>

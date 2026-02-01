@@ -1,63 +1,11 @@
-
-/*
-/* PASO A (DEFINIR UN BORRADOR DEL PROBLEMA)
-    El problema de esta consulta es que trae todas las compras de los usuarios
-    si juan compró 2 veces, el resultado aparecera en filas repetidas.
-*/
-SELECT * FROM users 
-JOIN orders ON users.id = orders.user_id;
-
-
-/* PASO B (DEFINIR LA GRAIN Y AGRUPAR)
-    Queremos una fila por usuario, asi que necesitamos agrupar y sumar sus compras. 
-
-    Resultado de la Query: Total de compras por usuario
-    Grain: Usuario
-
-          name       | total_gastado
------------------+---------------
- Juan Pérez      |         55.50
- Luisa Martínez  |       1200.00
- Carlos López    |       1251.00
- María Rodriguez |        225.00
-(4 rows)
-*/
-SELECT u.name AS nombre_usuario,
-SUM (o.total_amount) AS total_compras
-FROM users u
-JOIN orders o ON u.id = o.user_id
-GROUP BY u.id, u.name; -- Recordar que en el GROUP BY van las columnas puestas en el SELECT
-
-
-/* PASO C (lÓGICA DE NEGOCIO - CLASIFICACIÓN)
- nombre_usuario  | total_compras |  tipo_usuario
------------------+---------------+-----------------
- María Rodriguez |        225.00 | USUARIO REGULAR
- Luisa Martínez  |       1200.00 | USUARIO VIP
- Juan Pérez      |         55.50 | USUARIO REGULAR
- Carlos López    |       1251.00 | USUARIO VIP
-(4 rows)
-*/
-
-SELECT u.name AS nombre_usuario,
-SUM (o.total_amount) AS total_compras,
-
-CASE 
-    WHEN SUM(o.total_amount) >= 1000 THEN 'USUARIO VIP'
-    ELSE 'USUARIO REGULAR'
-END AS tipo_usuario
-FROM users u
-JOIN orders o ON u.id = o.user_id
-GROUP BY u.id, u.name;
-
-*/
-
-
 -- VISTA 1: CLIENTES VIP
 /*
-HAVING y CASE
-Filtramos usuarios que han gastado más de 0 con HAVING
-y le damos una clasificación con CASE
+ View: v_vip_customers
+ Grain: 1 fila por Usuario.
+ Metricas: total_spent (Suma de montos).
+ Group By: Para agrupar múltiples órdenes en un solo total por usuario.
+ Having: Para mostrar solo usuarios que han comprado algo (gasto > 0).
+ Verify: SELECT * FROM v_vip_customers WHERE status = 'VIP';
 */
 CREATE OR REPLACE VIEW v_vip_customers AS
 SELECT 
@@ -70,47 +18,65 @@ SELECT
     END as status
 FROM users u
 LEFT JOIN orders o ON u.id = o.user_id
-GROUP BY u.id, u.name;
-
+GROUP BY u.id, u.name
+HAVING COALESCE(SUM(o.total_amount), 0) > 0;
 
 -- VISTA 2: VENTAS POR CATEGORÍA
 /*
-Agregación con SUM y GROUP BY
-Grain: Categoría de producto
+ View: v_sales_by_category
+ Grain: 1 fila por Categoría.
+ Metricas: Total_ordenes, Ganancias.
+ Group By: Para acumular ventas de productos dentro de su categoría
+ Having: Solo mostramos las categorías con ventas (Ganancias > 0).
+ Verify: SELECT * FROM v_sales_by_category ORDER BY Ganancias DESC;
 */
 CREATE OR REPLACE VIEW v_sales_by_category AS
 SELECT 
     c.name AS Nombre_categoria,
     COUNT(o.id) AS Total_ordenes,
-    SUM(o.total_amount) AS Ganancias
+    SUM(o.total_amount) AS Ganancias,
+    ROUND((SUM(o.total_amount) / NULLIF(COUNT(o.id), 0)), 2) AS Ticket_promedio
 FROM categories c
 JOIN products p ON c.id = p.category_id
 JOIN orders o ON p.id = o.product_id
 WHERE o.status = 'completed'
-GROUP BY c.name;
-
+GROUP BY c.name
+HAVING SUM(o.total_amount) > 0;
 
 -- VISTA 3: PRODUCTOS MÁS VENDIDOS
 /*
-Agregación con COUNT y GROUP BY
-Grain: Producto
+ View: v_productos_mas_vendidos
+ Grain: 1 fila por Producto.
+ Metricas: Veces_vendido, Total_cantidad_vendida.
+ Why Group By: Agrupar órdenes por producto.
+ Uses CTE: 'SalesSummary' pre-calcula los conteos antes del JOIN.
+ Verify: SELECT * FROM v_productos_mas_vendidos LIMIT 5;
 */
 CREATE OR REPLACE VIEW v_productos_mas_vendidos AS
+WITH SalesSummary AS (
+    SELECT 
+        product_id,
+        COUNT(id) AS sales_count, 
+        SUM(quantity) AS quantity_sum
+    FROM orders 
+    WHERE status = 'completed'
+    GROUP BY product_id
+)
 SELECT
     p.name AS Nombre_producto,
-    COUNT(o.id) AS Veces_vendido,
-    SUM(o.quantity) AS Total_cantidad_vendida
+    COALESCE(s.sales_count, 0) AS Veces_vendido,
+    COALESCE(s.quantity_sum, 0) AS Total_cantidad_vendida
 FROM products p
-JOIN orders o ON p.id = o.product_id
-WHERE o.status = 'completed'
-GROUP BY p.name
-ORDER BY Veces_vendido DESC;    
-
+JOIN SalesSummary s ON p.id = s.product_id
+ORDER BY s.sales_count DESC;    
 
 -- VISTA 4: RESUMEN DE ÓRDENES POR ESTADO
 /*
-Agregación con COUNT y GROUP BY
-Grain: Estado de la orden
+ View: v_resumen_ordenes_por_estado
+ Grain: 1 fila por Estado (pending, completed, etc).
+ Metricas: Total_ordenes, Ingresos_totales.
+ Group By: Para sumar las métricas por estado.
+ Verify: SELECT * FROM v_resumen_ordenes_por_estado;
 */      
 CREATE OR REPLACE VIEW v_resumen_ordenes_por_estado AS
 SELECT
@@ -122,15 +88,19 @@ GROUP BY o.status;
 
 -- VISTA 5: RANKING DE USUARIOS POR GASTO
 /*
-Agregación con SUM y GROUP BY
-Grain: Usuario
+ View: v_ranking_usuarios_por_gasto
+ Grain: 1 fila por Usuario.
+ Metricas: Total_gastado, Rank_global.
+ Group By: Obtener el total gastado por usuario único.
+ Window Function: RANK() para generar la posición numérica explícita.
+ Verify: SELECT * FROM v_ranking_usuarios_por_gasto WHERE Rank_global <= 3;
 */  
 CREATE OR REPLACE VIEW v_ranking_usuarios_por_gasto AS
 SELECT
     u.name AS Nombre_usuario,
-    SUM(o.total_amount) AS Total_gastado
+    SUM(o.total_amount) AS Total_gastado,
+    RANK() OVER (ORDER BY SUM(o.total_amount) DESC) as Rank_global
 FROM users u
 JOIN orders o ON u.id = o.user_id
 WHERE o.status = 'completed'
-GROUP BY u.name
-ORDER BY Total_gastado DESC;
+GROUP BY u.name;

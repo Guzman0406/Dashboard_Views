@@ -19,6 +19,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://Guzman:rootGuzman@db:5432/reportes_db
+      - DATABASE_URL=postgresql://reportes_user:24371512%40@db:5432/reportes_db
     depends_on:
       - db
