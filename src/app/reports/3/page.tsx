@@ -28,9 +28,9 @@ export default async function Report3Page() {
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">📦 Top Productos</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Top Productos</h1>
                         <p className="text-gray-600 mt-2">
-                            Los artículos con mayor rotación en el inventario.
+                            Los artículos con mayor ventas.
                         </p>
                     </div>
                 </div>

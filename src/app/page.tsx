@@ -67,7 +67,7 @@ export default function Home() {
                 <div className="flex gap-2 mt-2">
                   <div className="h-2 w-3/4 bg-blue-500 rounded-full"></div>
                   <div className="h-2 w-1/4 bg-gray-200 rounded-full"></div>
-                </div>
+                </div>  
                 <p className="text-xs text-gray-400 mt-1">75% Completadas vs Pendientes</p>
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function Home() {
               </div>
 
               <p className="text-sm text-gray-500 mb-4">
-                Usuarios con compras &gt; $1000. Filtrado lógico para campañas de retención.
+                Usuarios con compras totales &gt;
               </p>
 
               <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
@@ -148,7 +148,7 @@ export default function Home() {
                     <Icons.Users />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">Top Spenders</h3>
+                    <h3 className="font-semibold text-lg">Top Usuarios</h3>
                     <p className="text-gray-400 text-sm">Ranking global de usuarios por gasto total</p>
                   </div>
                 </div>

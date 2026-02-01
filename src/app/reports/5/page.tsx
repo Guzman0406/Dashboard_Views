@@ -42,8 +42,8 @@ export default async function Report5Page({
 
                 <div className="flex justify-between items-end mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">🏆 Ranking de Usuarios</h1>
-                        <p className="text-gray-600 mt-2">Nuestros mejores compradores (Paginación Server-Side).</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Ranking de Usuarios</h1>
+                        <p className="text-gray-600 mt-2">Nuestros mejores usuarios.</p>
                     </div>
                     <div className="text-right">
                         <p className="text-sm text-gray-500">Página {currentPage} de {totalPages}</p>

@@ -16,7 +16,7 @@ export default async function Report4Page() {
             <div className="max-w-5xl mx-auto">
                 <Link href="/" className="text-sm text-gray-500 hover:text-blue-600 mb-6 inline-block">← Volver al Dashboard</Link>
 
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Salud de las Órdenes</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Salud de las Órdenes</h1>
                 <p className="text-gray-600 mb-8">Comparativa financiera por estado de la transacción.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

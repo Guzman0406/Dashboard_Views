@@ -32,9 +32,9 @@ export default async function Report2Page() {
                 { }
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">📊 Ventas por Categoría</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Ventas por Categoría</h1>
                         <p className="text-gray-600 mt-2">
-                            Desglose de ingresos generado por cada familia de productos.
+                            Desglose de ingresos generado por cada categoría de productos.
                         </p>
                     </div>
 
@@ -83,7 +83,7 @@ export default async function Report2Page() {
                         })}
                     </div>
                     <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-right text-gray-400">
-                        Visualización generada con CSS nativo (Performance-first)
+                        Generado con Next.js
                     </div>
                 </div>
 
